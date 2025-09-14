@@ -1,0 +1,45 @@
+{
+  "_format": "hh-sol-cache-2",
+  "files": {
+    "C:\\Users\\ASUS\\Desktop\\cryptobirdnft\\contracts\\CryptoBirdsContract.sol": {
+      "lastModificationDate": 1757872576873,
+      "contentHash": "774cec4c11b4974bb31c0042fce8be9e",
+      "sourceName": "contracts/CryptoBirdsContract.sol",
+      "solcConfig": {
+        "version": "0.8.28",
+        "settings": {
+          "evmVersion": "paris",
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.28"
+      ],
+      "artifacts": [
+        "CryptoBirdsContract",
+        "IERC165",
+        "IERC721",
+        "IERC721Metadata",
+        "IERC721Receiver"
+      ]
+    }
+  }
+}

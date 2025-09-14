@@ -1,0 +1,347 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>CryptoBirds — dApp</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    :root { --bg:#0f1115; --panel:#171a21; --ink:#e8ecf1; --muted:#9aa3b2; --acc:#6ea8fe; --warn:#ffcc66; --err:#ff6b6b; --ok:#7bd88f; }
+    * { box-sizing: border-box; }
+    body { margin:0; font:14px/1.45 system-ui,Segoe UI,Roboto,Arial; background:var(--bg); color:var(--ink); }
+    header { padding:16px 20px; border-bottom:1px solid #202635; position:sticky; top:0; background:linear-gradient(180deg,var(--bg),rgba(15,17,21,.92)); backdrop-filter:saturate(140%) blur(6px); display:flex; gap:12px; align-items:center; justify-content:space-between; }
+    h1 { font-size:18px; margin:0; letter-spacing:.3px; }
+    .wrap { max-width:1100px; margin:28px auto; padding:0 16px 48px; display:grid; grid-template-columns: 1.1fr 1fr; gap:16px; }
+    .card { background:var(--panel); border:1px solid #252b39; border-radius:16px; padding:16px; box-shadow:0 6px 22px rgba(0,0,0,.25); }
+    .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    .row > * { flex:1 1 auto; }
+    label { font-size:12px; color:var(--muted); margin-bottom:6px; display:block; }
+    input, select, textarea { width:100%; padding:10px 12px; border-radius:10px; border:1px solid #2a3142; background:#0f131b; color:var(--ink); outline: none; }
+    input:focus, textarea:focus { border-color:#3a79ff; box-shadow:0 0 0 3px rgba(62,129,255,.18); }
+    button { padding:10px 14px; border-radius:10px; border:1px solid #2b3346; background:#121723; color:var(--ink); cursor:pointer; transition:.15s ease; }
+    button.primary { background:linear-gradient(180deg,#2f6bff,#1e58ff); border-color:#355fff; }
+    button:hover { transform: translateY(-1px); }
+    button:disabled { opacity:.55; cursor:not-allowed; transform:none; }
+    .pill { padding:6px 10px; border-radius:999px; background:#101521; border:1px solid #26304a; color:var(--muted); font-size:12px; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .stat { display:grid; grid-template-columns: 1fr auto; gap:6px; padding:10px 12px; background:#111621; border:1px solid #283048; border-radius:12px; }
+    .muted { color:var(--muted); }
+    .ok { color:var(--ok) }
+    .warn { color:var(--warn) }
+    .err { color:var(--err) }
+    .grid { display:grid; grid-template-columns: repeat(2,1fr); gap:10px; }
+    @media (max-width: 900px) { .wrap{ grid-template-columns:1fr; } }
+    footer { text-align:center; color:var(--muted); padding:16px; border-top:1px solid #202635; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🐦 CryptoBirds — dApp</h1>
+    <div class="row" style="gap:8px; justify-content:flex-end; min-width: 360px;">
+      <span id="net" class="pill">Network: <span class="mono" id="netName">—</span></span>
+      <span id="acct" class="pill">Account: <span class="mono" id="acctAddr">—</span></span>
+      <button id="btnConnect" class="primary">Connect Wallet</button>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <!-- Contract panel -->
+    <section class="card">
+      <h3 style="margin:0 0 12px;">Contract</h3>
+      <div class="row">
+        <div style="flex: 2 1 auto;">
+          <label>Contract Address</label>
+          <input id="contractAddr" placeholder="0x... (paste deployed address)" value="">
+        </div>
+        <div style="align-self:flex-end;">
+          <button id="btnLoad" class="primary">Load Contract</button>
+        </div>
+      </div>
+
+      <details style="margin-top:10px;">
+        <summary class="muted">Show ABI (already filled)</summary>
+        <textarea id="abi" rows="8" class="mono" spellcheck="false"></textarea>
+      </details>
+
+      <div id="cInfo" style="margin-top:12px; display:none;" class="grid">
+        <div class="stat"><span class="muted">Owner</span><span class="mono" id="cOwner">—</span></div>
+        <div class="stat"><span class="muted">Total Supply</span><span class="mono" id="cSupply">0</span></div>
+        <div class="stat"><span class="muted">Next Token ID</span><span class="mono" id="cNext">—</span></div>
+      </div>
+
+      <div id="cStatus" class="muted" style="margin-top:10px;">Status: <span class="mono" id="statusTxt">Idle</span></div>
+    </section>
+
+    <!-- Quick reads -->
+    <section class="card">
+      <h3 style="margin:0 0 12px;">Read</h3>
+      <div class="row">
+        <div>
+          <label>tokenId</label>
+          <input id="inpTokenId" placeholder="e.g. 1">
+        </div>
+        <div style="align-self:flex-end;">
+          <button id="btnOwnerOf">ownerOf</button>
+        </div>
+        <div style="align-self:flex-end;">
+          <button id="btnTokenURI">tokenURI</button>
+        </div>
+      </div>
+      <div style="margin-top:10px;">
+        <label>Result</label>
+        <textarea id="readOut" rows="4" class="mono" readonly></textarea>
+      </div>
+    </section>
+
+    <!-- Mint / Admin -->
+    <section class="card">
+      <h3 style="margin:0 0 12px;">Mint (owner-only)</h3>
+      <div class="row">
+        <div>
+          <label>To</label>
+          <input id="mintTo" placeholder="0x... (EOA)">
+        </div>
+        <div>
+          <label>Full Token URI (optional)</label>
+          <input id="mintURI" placeholder="ipfs://... (leave empty to use baseURI+id)">
+        </div>
+      </div>
+      <div class="row" style="margin-top:10px;">
+        <button id="btnMint" class="primary">safeMint</button>
+        <button id="btnBurn" title="Owner or approved">burn</button>
+      </div>
+      <div class="muted" id="ownerNote" style="margin-top:8px;"></div>
+    </section>
+
+    <!-- Transfers & approvals -->
+    <section class="card">
+      <h3 style="margin:0 0 12px;">Transfer & Approval</h3>
+      <div class="row">
+        <div><label>Token ID</label><input id="xTokenId" placeholder="e.g. 1"></div>
+        <div><label>To</label><input id="xTo" placeholder="0x..."></div>
+      </div>
+      <div class="row" style="margin-top:8px;">
+        <button id="btnTransfer">transferFrom (you → to)</button>
+        <button id="btnSafeTransfer">safeTransferFrom (you → to)</button>
+      </div>
+      <hr style="border:0;border-top:1px solid #26304a; margin:14px 0;">
+      <div class="row">
+        <div><label>Approve: spender (single token)</label><input id="apprSpender" placeholder="0x..."></div>
+        <div><label>For tokenId</label><input id="apprTokenId" placeholder="e.g. 1"></div>
+        <div style="align-self:flex-end;"><button id="btnApprove">approve</button></div>
+      </div>
+      <div class="row" style="margin-top:8px;">
+        <div><label>SetApprovalForAll: operator</label><input id="opAll" placeholder="0x..."></div>
+        <div>
+          <label>&nbsp;</label>
+          <select id="opAllVal">
+            <option value="true">approve</option>
+            <option value="false">revoke</option>
+          </select>
+        </div>
+        <div style="align-self:flex-end;"><button id="btnApproveAll">setApprovalForAll</button></div>
+      </div>
+    </section>
+  </div>
+
+  <footer>Built with ethers v6 • Works with your local Hardhat or any EVM network</footer>
+
+  <!-- Ethers v6 UMD -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.15.0/dist/ethers.umd.min.js"></script>
+  <script>
+    // ======= ABI from your CryptoBirdsContract (hand-rolled ERC-721) =======
+    const ABI = [
+      // ERC165
+      {"inputs":[{"internalType":"bytes4","name":"interfaceId","type":"bytes4"}],"name":"supportsInterface","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"pure","type":"function"},
+      // Views
+      {"inputs":[],"name":"name","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},
+      {"inputs":[],"name":"symbol","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},
+      {"inputs":[{"internalType":"address","name":"owner_","type":"address"}],"name":"balanceOf","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+      {"inputs":[{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"ownerOf","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},
+      {"inputs":[{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"tokenURI","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},
+      {"inputs":[],"name":"totalSupply","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+      {"inputs":[],"name":"nextTokenId","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+      // Public state var getter
+      {"inputs":[],"name":"owner","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},
+      // Approvals
+      {"inputs":[{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"approve","outputs":[],"stateMutability":"nonpayable","type":"function"},
+      {"inputs":[{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"getApproved","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},
+      {"inputs":[{"internalType":"address","name":"operator","type":"address"},{"internalType":"bool","name":"_approved","type":"bool"}],"name":"setApprovalForAll","outputs":[],"stateMutability":"nonpayable","type":"function"},
+      {"inputs":[{"internalType":"address","name":"owner_","type":"address"},{"internalType":"address","name":"operator","type":"address"}],"name":"isApprovedForAll","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},
+      // Transfers
+      {"inputs":[{"internalType":"address","name":"from","type":"address"},{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"transferFrom","outputs":[],"stateMutability":"nonpayable","type":"function"},
+      {"inputs":[{"internalType":"address","name":"from","type":"address"},{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"safeTransferFrom","outputs":[],"stateMutability":"nonpayable","type":"function"},
+      {"inputs":[{"internalType":"address","name":"from","type":"address"},{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"tokenId","type":"uint256"},{"internalType":"bytes","name":"data","type":"bytes"}],"name":"safeTransferFrom","outputs":[],"stateMutability":"nonpayable","type":"function"},
+      // Mint/Burn/Admin
+      {"inputs":[{"internalType":"address","name":"to","type":"address"},{"internalType":"string","name":"fullTokenURI","type":"string"}],"name":"safeMint","outputs":[{"internalType":"uint256","name":"tokenId","type":"uint256"}],"stateMutability":"nonpayable","type":"function"},
+      {"inputs":[{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"burn","outputs":[],"stateMutability":"nonpayable","type":"function"},
+      {"inputs":[{"internalType":"string","name":"newBase","type":"string"}],"name":"setBaseURI","outputs":[],"stateMutability":"nonpayable","type":"function"},
+      {"inputs":[{"internalType":"address","name":"newOwner","type":"address"}],"name":"transferContractOwnership","outputs":[],"stateMutability":"nonpayable","type":"function"},
+      // Events (optional to listen)
+      {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"from","type":"address"},{"indexed":true,"internalType":"address","name":"to","type":"address"},{"indexed":true,"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"Transfer","type":"event"},
+      {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"owner","type":"address"},{"indexed":true,"internalType":"address","name":"approved","type":"address"},{"indexed":true,"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"Approval","type":"event"},
+      {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"owner","type":"address"},{"indexed":true,"internalType":"address","name":"operator","type":"address"},{"indexed":false,"internalType":"bool","name":"approved","type":"bool"}],"name":"ApprovalForAll","type":"event"}
+    ];
+
+    // ======= App logic =======
+    const $ = (id) => document.getElementById(id);
+    const statusTxt = (s, cls='') => { $('statusTxt').textContent = s; $('statusTxt').className = cls; };
+
+    let provider, signer, account, contract;
+
+    const DEFAULTS = {
+      // Paste your deployed address here for convenience:
+      address: "",
+    };
+
+    $('abi').value = JSON.stringify(ABI, null, 2);
+    $('contractAddr').value = DEFAULTS.address;
+
+    async function connect() {
+      if (!window.ethereum) { alert('MetaMask not found'); return; }
+      provider = new ethers.BrowserProvider(window.ethereum);
+      await provider.send('eth_requestAccounts', []);
+      signer = await provider.getSigner();
+      account = await signer.getAddress();
+
+      const net = await provider.getNetwork();
+      $('netName').textContent = `${net.name} (${Number(net.chainId)})`;
+      $('acctAddr').textContent = account;
+      $('btnConnect').disabled = true;
+
+      window.ethereum.on('accountsChanged', () => location.reload());
+      window.ethereum.on('chainChanged', () => location.reload());
+    }
+
+    async function loadContract() {
+      try {
+        const addr = $('contractAddr').value.trim();
+        if (!addr) { alert('Enter contract address'); return; }
+        const abi = JSON.parse($('abi').value);
+        contract = new ethers.Contract(addr, abi, signer || provider);
+        statusTxt('Reading...', 'muted');
+
+        const [owner, supply, next] = await Promise.all([
+          contract.owner(),
+          contract.totalSupply(),
+          contract.nextTokenId()
+        ]);
+        $('cOwner').textContent = owner;
+        $('cSupply').textContent = String(supply);
+        $('cNext').textContent = String(next);
+        $('cInfo').style.display = 'grid';
+
+        if (account) {
+          $('ownerNote').innerHTML = (account.toLowerCase() === owner.toLowerCase())
+            ? `You are the <span class="ok">owner</span> — mint enabled.`
+            : `You are <span class="warn">not</span> the owner — mint will revert.`;
+        }
+        statusTxt('Ready', 'ok');
+      } catch (e) {
+        console.error(e);
+        statusTxt(e.message || 'Failed', 'err');
+      }
+    }
+
+    // Reads
+    async function readOwnerOf() {
+      const id = $('inpTokenId').value.trim();
+      if (!id) return;
+      try {
+        const o = await contract.ownerOf(BigInt(id));
+        $('readOut').value = o;
+      } catch (e) { $('readOut').value = (e?.shortMessage || e.message); }
+    }
+    async function readTokenURI() {
+      const id = $('inpTokenId').value.trim();
+      if (!id) return;
+      try {
+        const uri = await contract.tokenURI(BigInt(id));
+        $('readOut').value = uri;
+      } catch (e) { $('readOut').value = (e?.shortMessage || e.message); }
+    }
+
+    // Writes
+    async function doMint() {
+      const to = $('mintTo').value.trim() || account;
+      const uri = $('mintURI').value.trim();
+      try {
+        statusTxt('Minting...');
+        const tx = await contract.safeMint(to, uri);
+        await tx.wait();
+        statusTxt('Minted ✓', 'ok');
+        await loadContract(); // refresh stats
+      } catch (e) {
+        console.error(e); statusTxt(e?.shortMessage || e.message, 'err');
+      }
+    }
+    async function doBurn() {
+      const id = prompt('Token ID to burn:');
+      if (!id) return;
+      try {
+        statusTxt('Burning...');
+        const tx = await contract.burn(BigInt(id));
+        await tx.wait();
+        statusTxt('Burned ✓', 'ok');
+        await loadContract();
+      } catch (e) { console.error(e); statusTxt(e?.shortMessage || e.message, 'err'); }
+    }
+    async function doTransfer(safe=false) {
+      const id = $('xTokenId').value.trim();
+      const to = $('xTo').value.trim();
+      if (!id || !to) return alert('Fill tokenId and to');
+      try {
+        statusTxt(safe ? 'safeTransferring...' : 'Transferring...');
+        const from = account;
+        const tx = safe
+          ? await contract['safeTransferFrom(address,address,uint256)'](from, to, BigInt(id))
+          : await contract.transferFrom(from, to, BigInt(id));
+        await tx.wait();
+        statusTxt('Transfer ✓', 'ok');
+      } catch (e) { console.error(e); statusTxt(e?.shortMessage || e.message, 'err'); }
+    }
+    async function doApprove() {
+      const to = $('apprSpender').value.trim();
+      const id = $('apprTokenId').value.trim();
+      if (!to || !id) return;
+      try {
+        statusTxt('Approving...');
+        const tx = await contract.approve(to, BigInt(id));
+        await tx.wait();
+        statusTxt('Approved ✓', 'ok');
+      } catch (e) { console.error(e); statusTxt(e?.shortMessage || e.message, 'err'); }
+    }
+    async function doApproveAll() {
+      const op = $('opAll').value.trim();
+      if (!op) return;
+      const val = $('opAllVal').value === 'true';
+      try {
+        statusTxt(val ? 'Granting operator...' : 'Revoking operator...');
+        const tx = await contract.setApprovalForAll(op, val);
+        await tx.wait();
+        statusTxt('Done ✓', 'ok');
+      } catch (e) { console.error(e); statusTxt(e?.shortMessage || e.message, 'err'); }
+    }
+
+    // Events
+    $('btnConnect').onclick = connect;
+    $('btnLoad').onclick = loadContract;
+    $('btnOwnerOf').onclick = readOwnerOf;
+    $('btnTokenURI').onclick = readTokenURI;
+    $('btnMint').onclick = doMint;
+    $('btnBurn').onclick = doBurn;
+    $('btnTransfer').onclick = () => doTransfer(false);
+    $('btnSafeTransfer').onclick = () => doTransfer(true);
+    $('btnApprove').onclick = doApprove;
+    $('btnApproveAll').onclick = doApproveAll;
+
+    // Quality-of-life: prefill last used contract in localStorage
+    (function restore() {
+      const last = localStorage.getItem('cbirds.contract');
+      if (last) $('contractAddr').value = last;
+    })();
+    $('contractAddr').addEventListener('change', (e) => {
+      localStorage.setItem('cbirds.contract', e.target.value.trim());
+    });
+  </script>
+</body>
+</html>
